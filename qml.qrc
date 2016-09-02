@@ -3,5 +3,6 @@
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
         <file>SleepPopup.qml</file>
+        <file>SleepButton.qml</file>
     </qresource>
 </RCC>
