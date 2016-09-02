@@ -15,6 +15,9 @@ ApplicationWindow {
     title: qsTr("Lazometer")
     minimumWidth: 200
 
+    Component.onCompleted: console.log('CREATE TABLE IF NOT EXISTS Times'
+                                       + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+
     SwipeView {
         id: swipeView
         anchors.fill: parent
@@ -22,24 +25,23 @@ ApplicationWindow {
 
         Page {
             ColumnLayout {
+                id: sleepButtonsCol
 
                 anchors.centerIn: parent
 
                 SleepButton {
                     id: inBedButton
 
-                    function confirmed() {
-                        console.log(sqlNewTable);
+                    confirmedFn: function() {
+//                        console.log(sqlNewTable);
                         console.log(sqlConfirm);
                         enabled = false;
                     }
-
-                    function forgot() {
-                        console.log(sqlNewTable);
+                    forgotFn: function() {
+//                        console.log(sqlNewTable);
                         console.log(sqlForgot);
                         enabled = false;
                     }
-
                     text: qsTr("In Bed")
                     enabled: true
                     onClicked: {
@@ -50,7 +52,14 @@ ApplicationWindow {
                 SleepButton {
                     id: toSleepButton
 
-                    function confirmed() {
+                    function changeEnabled() {
+                        enabled = false;
+                        inBedButton.enabled = false;  // necessary?
+                        awakeButton.enabled = true;
+                        gotUpButton.enabled = true;
+                    }
+
+                    confirmedFn: function() {
                         if(!inBedButton.enabled) {
                             console.log(sqlConfirm);
                             changeEnabled();
@@ -59,26 +68,16 @@ ApplicationWindow {
                             sameTimePopup.open();
                         }
                     }
-
-                    function forgot() {
-                        console.log(sqlNewTable); // may get rid of this later...
+                    forgotFn: function() {
+//                        console.log(sqlNewTable); // may get rid of this later...
                         console.log(sqlForgot);
                         changeEnabled();
                     }
-
-                    function changeEnabled() {
-                        enabled = false;
-                        inBedButton.enabled = false;  // necessary?
-                        awakeButton.enabled = true;
-                        gotUpButton.enabled = true;
-                    }
-
                     sameTimeFn: function() {
-                        console.log(sqlNewTable);
+//                        console.log(sqlNewTable);
                         console.log(sqlConfirmSameTime);
                         changeEnabled();
                     }
-
                     text: qsTr("Going to Sleep")
                     enabled: true
                     priorSleepButton: inBedButton
@@ -91,15 +90,13 @@ ApplicationWindow {
                 SleepButton {
                     id: awakeButton
 
-                    function confirmed() {
+                    confirmedFn: function() {
                         console.log(sqlConfirm);
                         enabled = false;
                     }
-
-                    function forgot() {
+                    forgotFn: function() {
                         enabled = false;
                     }
-
                     text: qsTr("Awake")
                     enabled: false
                     onClicked: {
@@ -110,20 +107,6 @@ ApplicationWindow {
                 SleepButton {
                     id: gotUpButton
 
-                    function confirmed() {
-                        if(!awakeButton.enabled) {
-                            console.log(sqlConfirm);
-                            reset();
-                        } else {
-                            sameTimePopup.sleepButton = gotUpButton
-                            sameTimePopup.open();
-                        }
-                    }
-
-                    function forgot() {
-                        reset();
-                    }
-
                     function reset() {
                         enabled = false;
                         awakeButton.enabled = false;
@@ -132,6 +115,18 @@ ApplicationWindow {
                         initialPopup.sleepButton = null;
                     }
 
+                    confirmedFn: function() {
+                        if(!awakeButton.enabled) {
+                            console.log(sqlConfirm);
+                            reset();
+                        } else {
+                            sameTimePopup.sleepButton = gotUpButton
+                            sameTimePopup.open();
+                        }
+                    }
+                    forgotFn: function() {
+                        reset();
+                    }
                     sameTimeFn: function() {
                         console.log(sqlConfirmSameTime);
                         reset();
@@ -151,12 +146,14 @@ ApplicationWindow {
 
                 x: (root.width - width) / 2
                 y: (root.height - height) / 2
+                buttonWidth: sleepButtonsCol.width / 2
+                forgotToolTipText: qsTr("Tap here if you forgot to\nconfirm your start time.")
                 onConfirmClicked: {
-                    sleepButton.confirmed();
+                    sleepButton.confirmedFn();
                     close();
                 }
                 onForgotClicked: {
-                    sleepButton.forgot();
+                    sleepButton.forgotFn();
                     close();
                 }
                 onClosed: forgotEnabled = true
@@ -167,18 +164,21 @@ ApplicationWindow {
 
                 x: (root.width - width) / 2
                 y: (root.height - height) / 2
-                forgotText: "Same Time"
+                buttonWidth: sleepButtonsCol.width / 2
+                confirmText: "Same Time"
+                forgotText: "Forgot " + sleepButton.priorSleepButton.text  // Makes an error (null val)
+                forgotToolTipText: qsTr("Tap here if you forgot to\nconfirm your start time\nfor "
+                                        + sleepButton.priorSleepButton.text)
                 onConfirmClicked: {
-                    console.log(sleepButton.sqlNewTable);  // maybe put this in the root C.onC
+//                    console.log(sleepButton.sqlNewTable);  // maybe put this in the root C.onC
                     sleepButton.sameTimeFn();
                     close();
                 }
                 onForgotClicked: {
-                    console.log(sleepButton.sqlNewTable);
+//                    console.log(sleepButton.sqlNewTable);
                     sleepButton.priorSleepButton.enabled = false;
-                    sleepButton.confirmed();
+                    sleepButton.confirmedFn();
                     close();
-                    // need to close initialPopup?
                 }
             }
         }

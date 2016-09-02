@@ -11,8 +11,10 @@ Popup {
 
     property SleepButton sleepButton
     property alias forgotEnabled: forgotButton.enabled
-    property alias forgotText: confirmButton.text
-//    property alias forgotToolTipText: forgotButton.ToolTip.text  // can't do this.
+    property alias confirmText: confirmButton.text
+    property alias forgotText: forgotButton.text
+    property int buttonWidth
+    property string forgotToolTipText
 
     signal confirmClicked()
     signal forgotClicked()
@@ -28,7 +30,8 @@ Popup {
             id: confirmButton
 
             text: qsTr("Confirm")
-            Layout.preferredWidth: inBedButton.width / 2  // fix this dependency
+            Layout.preferredWidth: buttonWidth
+            Layout.fillWidth: true
             onClicked: sleepPopupRoot.confirmClicked();
         }
 
@@ -39,7 +42,7 @@ Popup {
             Layout.fillWidth: true
             ToolTip.visible: pressed
             ToolTip.delay: Qt.styleHints.mousePressAndHoldInterval
-            ToolTip.text: qsTr("Tap here if you forgot to\nconfirm your start time.")
+            ToolTip.text: forgotToolTipText
             onClicked: sleepPopupRoot.forgotClicked();
         }
     }
