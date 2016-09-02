@@ -15,8 +15,16 @@ ApplicationWindow {
     title: qsTr("Lazometer")
     minimumWidth: 200
 
-    Component.onCompleted: console.log('CREATE TABLE IF NOT EXISTS Times'
-                                       + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+    Component.onCompleted: {
+        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+
+        db.transaction(
+            function(tx) {
+                tx.executeSql('CREATE TABLE IF NOT EXISTS Times'
+                              + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+            }
+        );
+    }
 
     SwipeView {
         id: swipeView
@@ -33,15 +41,25 @@ ApplicationWindow {
                     id: inBedButton
 
                     confirmedFn: function() {
-//                        console.log(sqlNewTable);
-                        console.log(sqlConfirm);
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                tx.executeSql(sqlConfirm);
+                            }
+                        );
                         enabled = false;
                     }
                     forgotFn: function() {
-//                        console.log(sqlNewTable);
-                        console.log(sqlForgot);
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                tx.executeSql(sqlForgot);
+                            }
+                        );
                         enabled = false;
                     }
+                    sqlConfirm: "INSERT INTO Times(inBed) VALUES (datetime('now'))"
+                    sqlForgot: "INSERT INTO Times(inBed) VALUES (null)"
                     text: qsTr("In Bed")
                     enabled: true
                     onClicked: {
@@ -54,14 +72,19 @@ ApplicationWindow {
 
                     function changeEnabled() {
                         enabled = false;
-                        inBedButton.enabled = false;  // necessary?
+                        inBedButton.enabled = false;
                         awakeButton.enabled = true;
                         gotUpButton.enabled = true;
                     }
 
                     confirmedFn: function() {
                         if(!inBedButton.enabled) {
-                            console.log(sqlConfirm);
+                            var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                            db.transaction(
+                                function(tx) {
+                                    tx.executeSql(sqlConfirm);
+                                }
+                            );
                             changeEnabled();
                         } else {
                             sameTimePopup.sleepButton = toSleepButton;
@@ -69,15 +92,21 @@ ApplicationWindow {
                         }
                     }
                     forgotFn: function() {
-//                        console.log(sqlNewTable); // may get rid of this later...
-                        console.log(sqlForgot);
                         changeEnabled();
                     }
                     sameTimeFn: function() {
-//                        console.log(sqlNewTable);
-                        console.log(sqlConfirmSameTime);
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                tx.executeSql(sqlConfirmSameTime);
+                            }
+                        );
                         changeEnabled();
                     }
+                    sqlConfirm: "UPDATE Times SET toSleep = datetime('now') "
+                                + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
+                    sqlConfirmSameTime: "INSERT INTO Times(inBed, toSleep) "
+                                        + "VALUES (datetime('now'), datetime('now'))"
                     text: qsTr("Going to Sleep")
                     enabled: true
                     priorSleepButton: inBedButton
@@ -91,12 +120,20 @@ ApplicationWindow {
                     id: awakeButton
 
                     confirmedFn: function() {
-                        console.log(sqlConfirm);
+//                        console.log(sqlConfirm);
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                tx.executeSql(sqlConfirm);
+                            }
+                        );
                         enabled = false;
                     }
                     forgotFn: function() {
                         enabled = false;
                     }
+                    sqlConfirm: "UPDATE Times SET awake = datetime('now') "
+                                + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Awake")
                     enabled: false
                     onClicked: {
@@ -117,7 +154,13 @@ ApplicationWindow {
 
                     confirmedFn: function() {
                         if(!awakeButton.enabled) {
-                            console.log(sqlConfirm);
+//                            console.log(sqlConfirm);
+                            var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                            db.transaction(
+                                function(tx) {
+                                    tx.executeSql(sqlConfirm);
+                                }
+                            );
                             reset();
                         } else {
                             sameTimePopup.sleepButton = gotUpButton
@@ -128,9 +171,19 @@ ApplicationWindow {
                         reset();
                     }
                     sameTimeFn: function() {
-                        console.log(sqlConfirmSameTime);
+//                        console.log(sqlConfirmSameTime);
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                tx.executeSql(sqlConfirmSameTime);
+                            }
+                        );
                         reset();
                     }
+                    sqlConfirm: "UPDATE Times SET gotUp = datetime('now') "
+                                + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
+                    sqlConfirmSameTime: "UPDATE Times SET awake = datetime('now'), gotUp = datetime('now') "
+                                        + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Out of Bed")
                     enabled: false
                     priorSleepButton: awakeButton
@@ -166,17 +219,17 @@ ApplicationWindow {
                 y: (root.height - height) / 2
                 buttonWidth: sleepButtonsCol.width / 2
                 confirmText: "Same Time"
-                forgotText: "Forgot " + sleepButton.priorSleepButton.text  // Makes an error (null val)
-                forgotToolTipText: qsTr("Tap here if you forgot to\nconfirm your start time\nfor "
-                                        + sleepButton.priorSleepButton.text)
+                forgotText: "Forgot Last Step"
+                forgotToolTipText: qsTr("Tap here if you forgot to\nconfirm your start time\nfor last step")
                 onConfirmClicked: {
-//                    console.log(sleepButton.sqlNewTable);  // maybe put this in the root C.onC
                     sleepButton.sameTimeFn();
                     close();
                 }
                 onForgotClicked: {
-//                    console.log(sleepButton.sqlNewTable);
                     sleepButton.priorSleepButton.enabled = false;
+                    if(sleepButton.text == "Going to Sleep") {
+                        sleepButton.priorSleepButton.forgotFn();  // Does what I want it to.
+                    }
                     sleepButton.confirmedFn();
                     close();
                 }
@@ -187,6 +240,39 @@ ApplicationWindow {
             Label {
                 text: qsTr("Second page")
                 anchors.centerIn: parent
+            }
+            // Buttons for checking table accuracy.
+            Button {
+                text: "Reset Table"
+                onClicked: {
+                    var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                    db.transaction(
+                        function(tx) {
+                            tx.executeSql('DROP TABLE IF EXISTS Times');
+                            tx.executeSql('CREATE TABLE IF NOT EXISTS Times'
+                                          + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+                        }
+                    );
+                }
+            }
+
+            Button {
+                text: "Show Table"
+                anchors.right: parent.right
+                onClicked: {
+                    var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                    db.transaction(
+                        function(tx) {
+                            var rs = tx.executeSql('SELECT * FROM Times');
+                            var r = "";
+                            for(var i = 0; i < rs.rows.length; i++) {
+                                r = rs.rows.item(i).inBed + ", " + rs.rows.item(i).toSleep + ", "
+                                     + rs.rows.item(i).awake + ", " + rs.rows.item(i).gotUp
+                                console.log(r);
+                            }
+                        }
+                    );
+                }
             }
         }
     }
