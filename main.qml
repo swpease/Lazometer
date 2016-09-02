@@ -4,27 +4,27 @@ import QtQuick.Layouts 1.0
 import QtQuick.Window 2.0
 import QtQuick.LocalStorage 2.0
 import QtQuick.Controls.Material 2.0
-//import QtQuick.Controls.Universal 2.0
 
 ApplicationWindow {
     id: root
+
+    function basicSqlQuery(query) {
+        // For all of the single-query moments below.
+        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+        db.transaction(
+            function(tx) {
+                tx.executeSql(query);
+            }
+        );
+    }
 
     visible: true
     width: Math.min(640, Screen.width)
     height: Math.min(480, Screen.height)
     title: qsTr("Lazometer")
     minimumWidth: 200
-
-    Component.onCompleted: {
-        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-
-        db.transaction(
-            function(tx) {
-                tx.executeSql('CREATE TABLE IF NOT EXISTS Times'
-                              + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
-            }
-        );
-    }
+    Component.onCompleted: basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
+                                        + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)')
 
     SwipeView {
         id: swipeView
@@ -41,21 +41,11 @@ ApplicationWindow {
                     id: inBedButton
 
                     confirmedFn: function() {
-                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                        db.transaction(
-                            function(tx) {
-                                tx.executeSql(sqlConfirm);
-                            }
-                        );
+                        root.basicSqlQuery(sqlConfirm);
                         enabled = false;
                     }
                     forgotFn: function() {
-                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                        db.transaction(
-                            function(tx) {
-                                tx.executeSql(sqlForgot);
-                            }
-                        );
+                        root.basicSqlQuery(sqlForgot);
                         enabled = false;
                     }
                     sqlConfirm: "INSERT INTO Times(inBed) VALUES (datetime('now'))"
@@ -79,12 +69,7 @@ ApplicationWindow {
 
                     confirmedFn: function() {
                         if(!inBedButton.enabled) {
-                            var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                            db.transaction(
-                                function(tx) {
-                                    tx.executeSql(sqlConfirm);
-                                }
-                            );
+                            root.basicSqlQuery(sqlConfirm);
                             changeEnabled();
                         } else {
                             sameTimePopup.sleepButton = toSleepButton;
@@ -95,12 +80,7 @@ ApplicationWindow {
                         changeEnabled();
                     }
                     sameTimeFn: function() {
-                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                        db.transaction(
-                            function(tx) {
-                                tx.executeSql(sqlConfirmSameTime);
-                            }
-                        );
+                        root.basicSqlQuery(sqlConfirmSameTime);
                         changeEnabled();
                     }
                     sqlConfirm: "UPDATE Times SET toSleep = datetime('now') "
@@ -120,13 +100,7 @@ ApplicationWindow {
                     id: awakeButton
 
                     confirmedFn: function() {
-//                        console.log(sqlConfirm);
-                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                        db.transaction(
-                            function(tx) {
-                                tx.executeSql(sqlConfirm);
-                            }
-                        );
+                        root.basicSqlQuery(sqlConfirm);
                         enabled = false;
                     }
                     forgotFn: function() {
@@ -154,13 +128,7 @@ ApplicationWindow {
 
                     confirmedFn: function() {
                         if(!awakeButton.enabled) {
-//                            console.log(sqlConfirm);
-                            var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                            db.transaction(
-                                function(tx) {
-                                    tx.executeSql(sqlConfirm);
-                                }
-                            );
+                            root.basicSqlQuery(sqlConfirm);
                             reset();
                         } else {
                             sameTimePopup.sleepButton = gotUpButton
@@ -171,13 +139,7 @@ ApplicationWindow {
                         reset();
                     }
                     sameTimeFn: function() {
-//                        console.log(sqlConfirmSameTime);
-                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
-                        db.transaction(
-                            function(tx) {
-                                tx.executeSql(sqlConfirmSameTime);
-                            }
-                        );
+                        root.basicSqlQuery(sqlConfirmSameTime);
                         reset();
                     }
                     sqlConfirm: "UPDATE Times SET gotUp = datetime('now') "
@@ -239,6 +201,13 @@ ApplicationWindow {
         Page {
             Label {
                 text: qsTr("Second page")
+                anchors.centerIn: parent
+            }
+        }
+
+        Page {
+            Label {
+                text: qsTr("Third page")
                 anchors.centerIn: parent
             }
             // Buttons for checking table accuracy.
