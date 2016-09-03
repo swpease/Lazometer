@@ -125,24 +125,25 @@ ApplicationWindow {
                         inBedButton.enabled = true;
                         initialPopup.sleepButton = null;
 
+                        /*
+                          Sets the "day" column for the entry. Takes the date() for graphing, since
+                          it will provide a zero of sorts for comparisons and graphs across entries.
+                          Will be converted into msec in the view per the Qt graphing rules.
+                          Subtracts 12 hours based on the logic that one typically goes to sleep
+                          after 12 PM on a given day and wakes up before 12 PM on the next day.
+                          */
                         var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
                         db.transaction(
                             function(tx) {
                                 var rs = tx.executeSql('SELECT * FROM Times '
                                                        + 'WHERE ROWID = (SELECT max(ROWID) FROM Times)');
-                                var lastRow = rs.rows.item(0)
-                                var nonNullEntry = "null"
-                                console.log(lastRow.inBed);
-                                if(lastRow.inBed != null) {
-                                    nonNullEntry = lastRow.inBed;
-                                } else if(lastRow.toSleep != null) {
-                                    nonNullEntry = lastRow.toSleep;
-                                } else if(lastRow.awake != null) {
-                                    nonNullEntry = lastRow.awake;
-                                } else if(lastRow.gotUp != null) {
-                                    nonNullEntry = lastRow.gotUp;
-                                }
-                                var dayUpdate = "UPDATE Times SET day = date('" + nonNullEntry + "', '-12 hours') WHERE ROWID = (SELECT max(ROWID) FROM Times)"
+                                var row = rs.rows.item(0)
+                                var dayEntry = row.inBed != null ?
+                                               row.inBed : (row.toSleep != null ?
+                                               row.toSleep : (row.awake != null ?
+                                               row.awake : row.gotUp));
+                                var dayUpdate = "UPDATE Times SET day = date('" + dayEntry
+                                                + "', '-12 hours') WHERE ROWID = (SELECT max(ROWID) FROM Times)";
                                 tx.executeSql(dayUpdate);
                             }
                         );
