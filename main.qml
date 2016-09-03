@@ -24,7 +24,7 @@ ApplicationWindow {
     title: qsTr("Lazometer")
     minimumWidth: 200
     Component.onCompleted: basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
-                                        + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)')
+                                        + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)')
 
     SwipeView {
         id: swipeView
@@ -118,29 +118,51 @@ ApplicationWindow {
                 SleepButton {
                     id: gotUpButton
 
-                    function reset() {
+                    function setDateAndReset() {
                         enabled = false;
                         awakeButton.enabled = false;
                         toSleepButton.enabled = true;
                         inBedButton.enabled = true;
                         initialPopup.sleepButton = null;
+
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                var rs = tx.executeSql('SELECT * FROM Times '
+                                                       + 'WHERE ROWID = (SELECT max(ROWID) FROM Times)');
+                                var lastRow = rs.rows.item(0)
+                                var nonNullEntry = "null"
+                                console.log(lastRow.inBed);
+                                if(lastRow.inBed != null) {
+                                    nonNullEntry = lastRow.inBed;
+                                } else if(lastRow.toSleep != null) {
+                                    nonNullEntry = lastRow.toSleep;
+                                } else if(lastRow.awake != null) {
+                                    nonNullEntry = lastRow.awake;
+                                } else if(lastRow.gotUp != null) {
+                                    nonNullEntry = lastRow.gotUp;
+                                }
+                                var dayUpdate = "UPDATE Times SET day = date('" + nonNullEntry + "', '-12 hours') WHERE ROWID = (SELECT max(ROWID) FROM Times)"
+                                tx.executeSql(dayUpdate);
+                            }
+                        );
                     }
 
                     confirmedFn: function() {
                         if(!awakeButton.enabled) {
                             root.basicSqlQuery(sqlConfirm);
-                            reset();
+                            setDateAndReset();
                         } else {
                             sameTimePopup.sleepButton = gotUpButton
                             sameTimePopup.open();
                         }
                     }
                     forgotFn: function() {
-                        reset();
+                        setDateAndReset();
                     }
                     sameTimeFn: function() {
                         root.basicSqlQuery(sqlConfirmSameTime);
-                        reset();
+                        setDateAndReset();
                     }
                     sqlConfirm: "UPDATE Times SET gotUp = datetime('now') "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
@@ -212,14 +234,14 @@ ApplicationWindow {
             }
             // Buttons for checking table accuracy.
             Button {
-                text: "Reset Table"
+                text: "setDateAndReset Table"
                 onClicked: {
                     var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
                     db.transaction(
                         function(tx) {
                             tx.executeSql('DROP TABLE IF EXISTS Times');
                             tx.executeSql('CREATE TABLE IF NOT EXISTS Times'
-                                          + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+                                          + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
                         }
                     );
                 }
@@ -236,7 +258,8 @@ ApplicationWindow {
                             var r = "";
                             for(var i = 0; i < rs.rows.length; i++) {
                                 r = rs.rows.item(i).inBed + ", " + rs.rows.item(i).toSleep + ", "
-                                     + rs.rows.item(i).awake + ", " + rs.rows.item(i).gotUp
+                                     + rs.rows.item(i).awake + ", " + rs.rows.item(i).gotUp + "\n"
+                                     + rs.rows.item(i).day
                                 console.log(r);
                             }
                         }
