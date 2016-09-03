@@ -24,7 +24,8 @@ ApplicationWindow {
     title: qsTr("Lazometer")
     minimumWidth: 200
     Component.onCompleted: basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
-                                        + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)')
+                                        + '(inBed INTEGER, toSleep INTEGER, awake INTEGER, gotUp INTEGER)')
+    // Store as Unix time (need to *1000 for msecs) for use in DateTimeAxis (see qml axes example)
 
     SwipeView {
         id: swipeView
@@ -48,7 +49,7 @@ ApplicationWindow {
                         root.basicSqlQuery(sqlForgot);
                         enabled = false;
                     }
-                    sqlConfirm: "INSERT INTO Times(inBed) VALUES (datetime('now'))"
+                    sqlConfirm: "INSERT INTO Times(inBed) VALUES (strftime('%s','now') * 1000)"
                     sqlForgot: "INSERT INTO Times(inBed) VALUES (null)"
                     text: qsTr("In Bed")
                     enabled: true
@@ -83,10 +84,10 @@ ApplicationWindow {
                         root.basicSqlQuery(sqlConfirmSameTime);
                         changeEnabled();
                     }
-                    sqlConfirm: "UPDATE Times SET toSleep = datetime('now') "
+                    sqlConfirm: "UPDATE Times SET toSleep = strftime('%s','now') * 1000 "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     sqlConfirmSameTime: "INSERT INTO Times(inBed, toSleep) "
-                                        + "VALUES (datetime('now'), datetime('now'))"
+                                        + "VALUES (strftime('%s','now') * 1000, strftime('%s','now') * 1000)"
                     text: qsTr("Going to Sleep")
                     enabled: true
                     priorSleepButton: inBedButton
@@ -106,7 +107,7 @@ ApplicationWindow {
                     forgotFn: function() {
                         enabled = false;
                     }
-                    sqlConfirm: "UPDATE Times SET awake = datetime('now') "
+                    sqlConfirm: "UPDATE Times SET awake = strftime('%s','now') * 1000 "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Awake")
                     enabled: false
@@ -142,9 +143,9 @@ ApplicationWindow {
                         root.basicSqlQuery(sqlConfirmSameTime);
                         reset();
                     }
-                    sqlConfirm: "UPDATE Times SET gotUp = datetime('now') "
+                    sqlConfirm: "UPDATE Times SET gotUp = strftime('%s','now') * 1000 "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
-                    sqlConfirmSameTime: "UPDATE Times SET awake = datetime('now'), gotUp = datetime('now') "
+                    sqlConfirmSameTime: "UPDATE Times SET awake = strftime('%s','now') * 1000, gotUp = strftime('%s','now') * 1000 "
                                         + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Out of Bed")
                     enabled: false
