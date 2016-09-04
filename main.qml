@@ -23,8 +23,17 @@ ApplicationWindow {
     height: Math.min(480, Screen.height)
     title: qsTr("Lazometer")
     minimumWidth: 200
-    Component.onCompleted: basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
-                                        + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)')
+    Component.onCompleted: {
+        basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
+                      + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+        basicSqlQuery('CREATE VIEW IF NOT EXISTS TimesView'
+                      + '(day, inBedDiff, toSleepDiff, awakeDiff, gotUpDiff)'
+                      + 'AS SELECT strftime(\'%s\', day) * 1000,'  // msecs for QML use
+                      + 'strftime(\'%s\', inBed) - strftime(\'%s\', day),'
+                      + 'strftime(\'%s\', toSleep) - strftime(\'%s\', day),'
+                      + 'strftime(\'%s\', awake) - strftime(\'%s\', day),'
+                      + 'strftime(\'%s\', gotUp) - strftime(\'%s\', day) FROM Times');
+    }
 
     SwipeView {
         id: swipeView
@@ -243,6 +252,15 @@ ApplicationWindow {
                             tx.executeSql('DROP TABLE IF EXISTS Times');
                             tx.executeSql('CREATE TABLE IF NOT EXISTS Times'
                                           + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+                            tx.executeSql('DROP VIEW IF EXISTS TimesView');
+                            // WILL NEED TO RESTART THE PROGRAM FOR NOW. SOMETHING GOES AWRY
+//                            tx.executeSql('CREATE VIEW IF NOT EXISTS TimesView'
+//                                          + '(day, inBedDiff, toSleepDiff, awakeDiff, gotUpDiff)'
+//                                          + 'AS SELECT strftime(\'%s\', day) * 1000,'  // msecs for QML use
+//                                          + 'strftime(\'%s\', inBed) - strftime(\'%s\', day),'
+//                                          + 'strftime(\'%s\', toSleep) - strftime(\'%s\', day),'
+//                                          + 'strftime(\'%s\', awake) - strftime(\'%s\', day),'
+//                                          + 'strftime(\'%s\', gotUp) - strftime(\'%s\', day) FROM Times');
                         }
                     );
                 }
@@ -262,6 +280,14 @@ ApplicationWindow {
                                      + rs.rows.item(i).awake + ", " + rs.rows.item(i).gotUp + "\n"
                                      + rs.rows.item(i).day
                                 console.log(r);
+                            }
+                            var rs2 = tx.executeSql('SELECT * FROM TimesView');
+                            var r2 = "";
+                            for(var i2 = 0; i2 < rs.rows.length; i2++) {
+                                r2 = rs2.rows.item(i2).inBedDiff + ", " + rs2.rows.item(i2).toSleepDiff + ", "
+                                     + rs2.rows.item(i2).awakeDiff + ", " + rs2.rows.item(i2).gotUpDiff + "\n"
+                                     + rs2.rows.item(i2).day
+                                console.log(r2);
                             }
                         }
                     );
