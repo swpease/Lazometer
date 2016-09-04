@@ -8,8 +8,6 @@ import QtQuick.Controls.Material 2.0
 Button {
 
     // Note: single quotes for direct SQLite inputs, either (I think) for variables as inputs.
-//    property string sqlNewTable: 'CREATE TABLE IF NOT EXISTS Times'
-//                                 + '(inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)'
     property string sqlForgot: "Forgot called"
     property string sqlConfirm: "Confirm called"
     property string sqlConfirmSameTime: "Confirm Same Time called"
