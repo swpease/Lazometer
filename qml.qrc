@@ -4,5 +4,6 @@
         <file>qtquickcontrols2.conf</file>
         <file>SleepPopup.qml</file>
         <file>SleepButton.qml</file>
+        <file>TestingPage.qml</file>
     </qresource>
 </RCC>
