@@ -53,16 +53,19 @@ ApplicationWindow {
 
                     confirmedFn: function() {
                         root.basicSqlQuery(sqlConfirm);
-                        enabled = false;
+//                        enabled = false;
+                        verified = false;
                     }
                     forgotFn: function() {
                         root.basicSqlQuery(sqlForgot);
-                        enabled = false;
+//                        enabled = false;
+                        verified = false;
                     }
                     sqlConfirm: "INSERT INTO Times(inBed) VALUES (datetime('now'))"
                     sqlForgot: "INSERT INTO Times(inBed) VALUES (null)"
                     text: qsTr("In Bed")
-                    enabled: true
+//                    enabled: true
+                    verified: true
                     onClicked: {
                         initialPopup.open();
                         initialPopup.sleepButton = inBedButton;
@@ -72,14 +75,18 @@ ApplicationWindow {
                     id: toSleepButton
 
                     function changeEnabled() {
-                        enabled = false;
-                        inBedButton.enabled = false;
-                        awakeButton.enabled = true;
-                        gotUpButton.enabled = true;
+//                        enabled = false;
+//                        inBedButton.enabled = false;
+//                        awakeButton.enabled = true;
+//                        gotUpButton.enabled = true;
+                        verified = false;
+                        inBedButton.verified = false;
+                        awakeButton.verified = true;
+                        gotUpButton.verified = true;
                     }
 
                     confirmedFn: function() {
-                        if(!inBedButton.enabled) {
+                        if(!inBedButton.verified) { // changed from !inBedButton.enabled
                             root.basicSqlQuery(sqlConfirm);
                             changeEnabled();
                         } else {
@@ -99,12 +106,13 @@ ApplicationWindow {
                     sqlConfirmSameTime: "INSERT INTO Times(inBed, toSleep) "
                                         + "VALUES (datetime('now'), datetime('now'))"
                     text: qsTr("Going to Sleep")
-                    enabled: true
+//                    enabled: true
+                    verified: true
                     priorSleepButton: inBedButton
                     onClicked: {
                         initialPopup.open();
                         initialPopup.sleepButton = toSleepButton;
-                        initialPopup.forgotEnabled = !inBedButton.enabled;
+                        initialPopup.forgotEnabled = !inBedButton.verified;  // changed from .enabled
                     }
                 }
                 SleepButton {
@@ -112,15 +120,18 @@ ApplicationWindow {
 
                     confirmedFn: function() {
                         root.basicSqlQuery(sqlConfirm);
-                        enabled = false;
+//                        enabled = false;
+                        verified = false;
                     }
                     forgotFn: function() {
-                        enabled = false;
+//                        enabled = false;
+                        verified = false;
                     }
                     sqlConfirm: "UPDATE Times SET awake = datetime('now') "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Awake")
-                    enabled: false
+//                    enabled: false
+                    verified: false
                     onClicked: {
                         initialPopup.open();
                         initialPopup.sleepButton = awakeButton;
@@ -130,10 +141,14 @@ ApplicationWindow {
                     id: gotUpButton
 
                     function setDateAndReset() {
-                        enabled = false;
-                        awakeButton.enabled = false;
-                        toSleepButton.enabled = true;
-                        inBedButton.enabled = true;
+//                        enabled = false;
+//                        awakeButton.enabled = false;
+//                        toSleepButton.enabled = true;
+//                        inBedButton.enabled = true;
+                        verified = false;
+                        awakeButton.verified = false;
+                        toSleepButton.verified = true;
+                        inBedButton.verified = true;
                         initialPopup.sleepButton = null;
 
                         /*
@@ -161,7 +176,7 @@ ApplicationWindow {
                     }
 
                     confirmedFn: function() {
-                        if(!awakeButton.enabled) {
+                        if(!awakeButton.verified) {  // changed from .enabled
                             root.basicSqlQuery(sqlConfirm);
                             setDateAndReset();
                         } else {
@@ -181,7 +196,8 @@ ApplicationWindow {
                     sqlConfirmSameTime: "UPDATE Times SET awake = datetime('now'), gotUp = datetime('now') "
                                         + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Out of Bed")
-                    enabled: false
+//                    enabled: false
+                    verified: false
                     priorSleepButton: awakeButton
                     onClicked: {
                         initialPopup.open();
@@ -222,7 +238,8 @@ ApplicationWindow {
                     close();
                 }
                 onForgotClicked: {
-                    sleepButton.priorSleepButton.enabled = false;
+//                    sleepButton.priorSleepButton.enabled = false;
+                    sleepButton.priorSleepButton.verified = false;
                     if(sleepButton.text == "Going to Sleep") {
                         sleepButton.priorSleepButton.forgotFn();  // Does what I want it to.
                     }
@@ -294,6 +311,7 @@ ApplicationWindow {
                 );
             }
         }
+        TestingPage { }
     }
 
     footer: TabBar {

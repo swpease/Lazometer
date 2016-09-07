@@ -15,7 +15,9 @@ Button {
     property var confirmedFn: function() { console.log("confirmedFn not implemented"); }
     property var forgotFn: function() { console.log("forgotFn not implemented"); }
     property var sameTimeFn: function() { console.log("sameTimeFn not implemented"); }
+
     property var priorSleepButton  // For holding a SleepButton
+    property bool verified
 
     Layout.minimumWidth: root.minimumWidth  // might want to remove the 'root' dependencies...
     Layout.maximumWidth: 450
