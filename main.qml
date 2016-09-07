@@ -74,7 +74,7 @@ ApplicationWindow {
                 SleepButton {
                     id: toSleepButton
 
-                    function changeEnabled() {
+                    function changeVerified() {
 //                        enabled = false;
 //                        inBedButton.enabled = false;
 //                        awakeButton.enabled = true;
@@ -88,18 +88,18 @@ ApplicationWindow {
                     confirmedFn: function() {
                         if(!inBedButton.verified) { // changed from !inBedButton.enabled
                             root.basicSqlQuery(sqlConfirm);
-                            changeEnabled();
+                            changeVerified();
                         } else {
                             sameTimePopup.sleepButton = toSleepButton;
                             sameTimePopup.open();
                         }
                     }
                     forgotFn: function() {
-                        changeEnabled();
+                        changeVerified();
                     }
                     sameTimeFn: function() {
                         root.basicSqlQuery(sqlConfirmSameTime);
-                        changeEnabled();
+                        changeVerified();
                     }
                     sqlConfirm: "UPDATE Times SET toSleep = datetime('now') "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
