@@ -5,6 +5,7 @@ import QtQuick.Window 2.0
 import QtQuick.LocalStorage 2.0
 import QtQuick.Controls.Material 2.0
 import QtCharts 2.1
+import Qt.labs.settings 1.0  // NB: may be changed or removed in future Qt versions.
 
 
 ApplicationWindow {
@@ -35,6 +36,13 @@ ApplicationWindow {
                       + 'strftime(\'%s\', toSleep) - strftime(\'%s\', day),'
                       + 'strftime(\'%s\', awake) - strftime(\'%s\', day),'
                       + 'strftime(\'%s\', gotUp) - strftime(\'%s\', day) FROM Times');
+    }
+
+    Settings {
+        property alias inBedEnabled: inBedButton.enabled
+        property alias toSleepEnabled: toSleepButton.enabled
+        property alias awakeEnabled: awakeButton.enabled
+        property alias gotUpEnabled: gotUpButton.enabled
     }
 
     SwipeView {
