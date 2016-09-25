@@ -29,8 +29,13 @@ ApplicationWindow {
     Component.onCompleted: {
         basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
                       + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
+        // SQL treats view as GMT, b/c the Table just stores strings, so it forgets that it was converted to localtime.
+//        basicSqlQuery('CREATE VIEW IF NOT EXISTS TimesView'
+//                      + '(dayview, inBedTimeSecs, inBedTime, timediff)'
+//                      + 'AS SELECT strftime(\'%s\', day), strftime(\'%s\', inBed), time(inBed),'
+//                      + 'strftime(\'%s\', inBed) - strftime(\'%s\', day) FROM Times');
         basicSqlQuery('CREATE VIEW IF NOT EXISTS TimesView'
-                      + '(day, inBedDiff, toSleepDiff, awakeDiff, gotUpDiff)'
+                      + '(dayview, inBedDiff, toSleepDiff, awakeDiff, gotUpDiff)'
                       + 'AS SELECT strftime(\'%s\', day) * 1000,'  // msecs for QML use
                       + 'strftime(\'%s\', inBed) - strftime(\'%s\', day),'
                       + 'strftime(\'%s\', toSleep) - strftime(\'%s\', day),'
@@ -67,7 +72,7 @@ ApplicationWindow {
                         root.basicSqlQuery(sqlForgot);
                         enabled = false;
                     }
-                    sqlConfirm: "INSERT INTO Times(inBed) VALUES (datetime('now'))"
+                    sqlConfirm: "INSERT INTO Times(inBed) VALUES (datetime('now', 'localtime'))"
                     sqlForgot: "INSERT INTO Times(inBed) VALUES (null)"
                     text: qsTr("In Bed")
                     enabled: true
@@ -102,10 +107,10 @@ ApplicationWindow {
                         root.basicSqlQuery(sqlConfirmSameTime);
                         changeEnabled();
                     }
-                    sqlConfirm: "UPDATE Times SET toSleep = datetime('now') "
+                    sqlConfirm: "UPDATE Times SET toSleep = datetime('now', 'localtime') "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     sqlConfirmSameTime: "INSERT INTO Times(inBed, toSleep) "
-                                        + "VALUES (datetime('now'), datetime('now'))"
+                                        + "VALUES (datetime('now', 'localtime'), datetime('now', 'localtime'))"
                     text: qsTr("Going to Sleep")
                     enabled: true
                     priorSleepButton: inBedButton
@@ -125,7 +130,7 @@ ApplicationWindow {
                     forgotFn: function() {
                         enabled = false;
                     }
-                    sqlConfirm: "UPDATE Times SET awake = datetime('now') "
+                    sqlConfirm: "UPDATE Times SET awake = datetime('now', 'localtime') "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Awake")
                     enabled: false
@@ -161,6 +166,8 @@ ApplicationWindow {
                                                row.inBed : (row.toSleep != null ?
                                                row.toSleep : (row.awake != null ?
                                                row.awake : row.gotUp));
+                                console.log(dayEntry)
+                                console.log(new Date(dayEntry), '\n\n')
                                 var dayUpdate = "UPDATE Times SET day = date('" + dayEntry
                                                 + "', '-12 hours') WHERE ROWID = (SELECT max(ROWID) FROM Times)";
                                 tx.executeSql(dayUpdate);
@@ -184,9 +191,9 @@ ApplicationWindow {
                         root.basicSqlQuery(sqlConfirmSameTime);
                         setDateAndReset();
                     }
-                    sqlConfirm: "UPDATE Times SET gotUp = datetime('now') "
+                    sqlConfirm: "UPDATE Times SET gotUp = datetime('now', 'localtime') "
                                 + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
-                    sqlConfirmSameTime: "UPDATE Times SET awake = datetime('now'), gotUp = datetime('now') "
+                    sqlConfirmSameTime: "UPDATE Times SET awake = datetime('now', 'localtime'), gotUp = datetime('now', 'localtime') "
                                         + "WHERE ROWID = (SELECT max(ROWID) FROM Times)"
                     text: qsTr("Out of Bed")
                     enabled: false
@@ -248,35 +255,69 @@ ApplicationWindow {
                 anchors.fill: parent
                 antialiasing: true
                 theme: ChartView.ChartThemeDark
+                Component.onCompleted: console.log("chartview made")
 
                 DateTimeAxis {
                     id: xAxis
+
+                    // Wouldn't auto-generate the appropriate range when the data was all added via the
+                    // "component.oncompleted", but *would* when the data was given as XYPoint's in
+                    // the LineSeries's, so I made this function to explicitly state the range.
+                    function axisRange() {
+                        var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
+                        db.transaction(
+                            function(tx) {
+                                var data = tx.executeSql('SELECT min(dayview) as mn, max(dayview) as mx FROM TimesView');
+                                xAxis.min = new Date(data.rows.item(0).mn);  // Wouldn't accept the msec timestring.
+                                xAxis.max = new Date(data.rows.item(0).mx);
+                            });
+                    }
+
                     format: "M d"
+                    Component.onCompleted: {
+                        axisRange();
+                        console.log("chart made");
+                    }
                 }
-                DateTimeAxis {
+                ValueAxis {
                     id: yAxis
-                    format: "h:mm a"
+                    labelFormat: "%d"
+//                    format: "h:mm a"  // tried DateTimeAxis
+                    min: 12
+                    max: 36
+                    tickCount: ((max - min) / 4) + 1
                 }
 
                 LineSeries {
                     id: inBedSeries
+                    name: "In Bed"
                     axisX: xAxis
                     axisY: yAxis
                 }
                 LineSeries {
                     id: toSleepSeries
+                    name: "To Sleep"
                     axisX: xAxis
                     axisY: yAxis
+//                    XYPoint { x: 1474574749 * 1000; y: 10 }
+//                    XYPoint { x: 1474570000 * 1000; y: 25 }
                 }
                 LineSeries {
                     id: awakeSeries
+                    name: "Awake"
                     axisX: xAxis
                     axisY: yAxis
+//                    XYPoint { x: 1474574749 * 1000; y: 1 }
+//                    XYPoint { x: 1474570000 * 1000; y: 2 }
                 }
                 LineSeries {
                     id: gotUpSeries
+                    name: "Got Up"
                     axisX: xAxis
                     axisY: yAxis
+//                    onPointAdded: console.log("point added", at(0))
+//                    XYPoint { x: 1474574749 * 1000; y: 22 }
+//                    XYPoint { x: 1474570000 * 1000; y: 33 }
                 }
             }
 
@@ -288,10 +329,16 @@ ApplicationWindow {
                         var data = tx.executeSql('SELECT * FROM TimesView');
                         var hourSecs = 3600
                         for(var i = 0; i < data.rows.length; i++) {
-                            inBedSeries.append(data.rows.item(i).day, data.rows.item(i).inBedDiff / hourSecs);
-                            toSleepSeries.append(data.rows.item(i).day, data.rows.item(i).toSleepDiff / hourSecs);
-                            awakeSeries.append(data.rows.item(i).day, data.rows.item(i).awakeDiff / hourSecs);
-                            gotUpSeries.append(data.rows.item(i).day, data.rows.item(i).gotUpDiff / hourSecs);
+                            // format of (x, y) coords: (date, int)
+                            console.log('my input: ', data.rows.item(i).dayview);
+                            console.log('my inBed: ', data.rows.item(i).inBedDiff / hourSecs);
+                            console.log('my toSleep: ', data.rows.item(i).toSleepDiff / hourSecs);
+                            console.log('my awakeBed: ', data.rows.item(i).awakeDiff / hourSecs);
+                            console.log('my gotUpBed: ', data.rows.item(i).gotUpDiff / hourSecs);
+                            inBedSeries.append(data.rows.item(i).dayview, data.rows.item(i).inBedDiff / hourSecs);
+                            toSleepSeries.append(data.rows.item(i).dayview, data.rows.item(i).toSleepDiff / hourSecs);
+                            awakeSeries.append(data.rows.item(i).dayview, data.rows.item(i).awakeDiff / hourSecs);
+                            gotUpSeries.append(data.rows.item(i).dayview, data.rows.item(i).gotUpDiff / hourSecs);
 
 //                            var r = data.rows.item(i).inBedDiff + ", " + data.rows.item(i).toSleepDiff + ", "
 //                                 + data.rows.item(i).awakeDiff + ", " + data.rows.item(i).gotUpDiff + "\n"
@@ -300,8 +347,10 @@ ApplicationWindow {
                         }
                     }
                 );
+                console.log("data input")
             }
         }
+        TestingPage {}
     }
 
     footer: TabBar {
