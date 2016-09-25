@@ -30,10 +30,6 @@ ApplicationWindow {
         basicSqlQuery('CREATE TABLE IF NOT EXISTS Times'
                       + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
         // SQL treats view as GMT, b/c the Table just stores strings, so it forgets that it was converted to localtime.
-//        basicSqlQuery('CREATE VIEW IF NOT EXISTS TimesView'
-//                      + '(dayview, inBedTimeSecs, inBedTime, timediff)'
-//                      + 'AS SELECT strftime(\'%s\', day), strftime(\'%s\', inBed), time(inBed),'
-//                      + 'strftime(\'%s\', inBed) - strftime(\'%s\', day) FROM Times');
         basicSqlQuery('CREATE VIEW IF NOT EXISTS TimesView'
                       + '(dayview, inBedDiff, toSleepDiff, awakeDiff, gotUpDiff)'
                       + 'AS SELECT strftime(\'%s\', day) * 1000,'  // msecs for QML use
@@ -166,8 +162,6 @@ ApplicationWindow {
                                                row.inBed : (row.toSleep != null ?
                                                row.toSleep : (row.awake != null ?
                                                row.awake : row.gotUp));
-                                console.log(dayEntry)
-                                console.log(new Date(dayEntry), '\n\n')
                                 var dayUpdate = "UPDATE Times SET day = date('" + dayEntry
                                                 + "', '-12 hours') WHERE ROWID = (SELECT max(ROWID) FROM Times)";
                                 tx.executeSql(dayUpdate);
@@ -255,7 +249,6 @@ ApplicationWindow {
                 anchors.fill: parent
                 antialiasing: true
                 theme: ChartView.ChartThemeDark
-                Component.onCompleted: console.log("chartview made")
 
                 DateTimeAxis {
                     id: xAxis
@@ -274,10 +267,7 @@ ApplicationWindow {
                     }
 
                     format: "M d"
-                    Component.onCompleted: {
-                        axisRange();
-                        console.log("chart made");
-                    }
+                    Component.onCompleted: axisRange();
                 }
                 ValueAxis {
                     id: yAxis
@@ -299,25 +289,18 @@ ApplicationWindow {
                     name: "To Sleep"
                     axisX: xAxis
                     axisY: yAxis
-//                    XYPoint { x: 1474574749 * 1000; y: 10 }
-//                    XYPoint { x: 1474570000 * 1000; y: 25 }
                 }
                 LineSeries {
                     id: awakeSeries
                     name: "Awake"
                     axisX: xAxis
                     axisY: yAxis
-//                    XYPoint { x: 1474574749 * 1000; y: 1 }
-//                    XYPoint { x: 1474570000 * 1000; y: 2 }
                 }
                 LineSeries {
                     id: gotUpSeries
                     name: "Got Up"
                     axisX: xAxis
                     axisY: yAxis
-//                    onPointAdded: console.log("point added", at(0))
-//                    XYPoint { x: 1474574749 * 1000; y: 22 }
-//                    XYPoint { x: 1474570000 * 1000; y: 33 }
                 }
             }
 
@@ -330,27 +313,16 @@ ApplicationWindow {
                         var hourSecs = 3600
                         for(var i = 0; i < data.rows.length; i++) {
                             // format of (x, y) coords: (date, int)
-                            console.log('my input: ', data.rows.item(i).dayview);
-                            console.log('my inBed: ', data.rows.item(i).inBedDiff / hourSecs);
-                            console.log('my toSleep: ', data.rows.item(i).toSleepDiff / hourSecs);
-                            console.log('my awakeBed: ', data.rows.item(i).awakeDiff / hourSecs);
-                            console.log('my gotUpBed: ', data.rows.item(i).gotUpDiff / hourSecs);
                             inBedSeries.append(data.rows.item(i).dayview, data.rows.item(i).inBedDiff / hourSecs);
                             toSleepSeries.append(data.rows.item(i).dayview, data.rows.item(i).toSleepDiff / hourSecs);
                             awakeSeries.append(data.rows.item(i).dayview, data.rows.item(i).awakeDiff / hourSecs);
                             gotUpSeries.append(data.rows.item(i).dayview, data.rows.item(i).gotUpDiff / hourSecs);
-
-//                            var r = data.rows.item(i).inBedDiff + ", " + data.rows.item(i).toSleepDiff + ", "
-//                                 + data.rows.item(i).awakeDiff + ", " + data.rows.item(i).gotUpDiff + "\n"
-//                                 + data.rows.item(i).day
-//                            console.log(r);
                         }
                     }
                 );
-                console.log("data input")
             }
         }
-        TestingPage {}
+//        TestingPage {}
     }
 
     footer: TabBar {
