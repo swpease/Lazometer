@@ -37,6 +37,12 @@ ApplicationWindow {
                       + 'strftime(\'%s\', toSleep) - strftime(\'%s\', day),'
                       + 'strftime(\'%s\', awake) - strftime(\'%s\', day),'
                       + 'strftime(\'%s\', gotUp) - strftime(\'%s\', day) FROM Times');
+        // Note: this view will not work if inBed is missing. Would have to change chart type.
+        basicSqlQuery('CREATE VIEW IF NOT EXISTS RelTimesView'
+                      + '(dayview, toSleepRel, gotUpRel)'
+                      + 'AS SELECT strftime(\'%s\', day) * 1000,'  // msecs for QML use
+                      + 'strftime(\'%s\', toSleep) - strftime(\'%s\', inBed),'
+                      + 'strftime(\'%s\', gotUp) - strftime(\'%s\', awake) FROM Times');
     }
 
     Settings {
@@ -273,32 +279,38 @@ ApplicationWindow {
                     id: yAxis
                     labelFormat: "%d"
 //                    format: "h:mm a"  // tried DateTimeAxis
-                    min: 12
-                    max: 36
-                    tickCount: ((max - min) / 4) + 1
+                    min: 0
+                    max: 120
+                    tickCount: ((max - min) / 15) + 1
                 }
 
-                LineSeries {
-                    id: inBedSeries
-                    name: "In Bed"
-                    axisX: xAxis
-                    axisY: yAxis
-                }
+//                LineSeries {
+//                    id: inBedSeries
+//                    name: "In Bed"
+//                    axisX: xAxis
+//                    axisY: yAxis
+//                }
                 LineSeries {
                     id: toSleepSeries
                     name: "To Sleep"
                     axisX: xAxis
                     axisY: yAxis
                 }
+//                LineSeries {
+//                    id: awakeSeries
+//                    name: "Awake"
+//                    axisX: xAxis
+//                    axisY: yAxis
+//                }
                 LineSeries {
-                    id: awakeSeries
-                    name: "Awake"
+                    id: gotUpSeries
+                    name: "Got Up"
                     axisX: xAxis
                     axisY: yAxis
                 }
                 LineSeries {
-                    id: gotUpSeries
-                    name: "Got Up"
+                    id: totalSeries
+                    name: "Total"
                     axisX: xAxis
                     axisY: yAxis
                 }
@@ -309,14 +321,26 @@ ApplicationWindow {
                 var db = LocalStorage.openDatabaseSync("LazometerDB", "1.0", "The Sleep Database", 1000000);
                 db.transaction(
                     function(tx) {
-                        var data = tx.executeSql('SELECT * FROM TimesView');
-                        var hourSecs = 3600
+                        var data = tx.executeSql('SELECT * FROM RelTimesView');
+//                        var hourSecs = 3600
+                        var minSecs = 60
                         for(var i = 0; i < data.rows.length; i++) {
                             // format of (x, y) coords: (date, int)
-                            inBedSeries.append(data.rows.item(i).dayview, data.rows.item(i).inBedDiff / hourSecs);
-                            toSleepSeries.append(data.rows.item(i).dayview, data.rows.item(i).toSleepDiff / hourSecs);
-                            awakeSeries.append(data.rows.item(i).dayview, data.rows.item(i).awakeDiff / hourSecs);
-                            gotUpSeries.append(data.rows.item(i).dayview, data.rows.item(i).gotUpDiff / hourSecs);
+//                            inBedSeries.append(data.rows.item(i).dayview, data.rows.item(i).inBedRel / hourSecs);  // Always 0 in RelTV.
+                            if (data.rows.item(i).toSleepRel != null) {
+                                toSleepSeries.append(data.rows.item(i).dayview, data.rows.item(i).toSleepRel / minSecs);
+                            }
+//                            if (data.rows.item(i).awakeRel != null) {
+//                                awakeSeries.append(data.rows.item(i).dayview, data.rows.item(i).awakeRel / hourSecs);
+//                            }
+                            if (data.rows.item(i).gotUpRel != null) {
+                                gotUpSeries.append(data.rows.item(i).dayview, data.rows.item(i).gotUpRel / minSecs);
+                            }
+                            if (data.rows.item(i).toSleepRel != null && data.rows.item(i).gotUpRel != null) {
+                                totalSeries.append(data.rows.item(i).dayview,
+                                                   (data.rows.item(i).toSleepRel / minSecs) +
+                                                   (data.rows.item(i).gotUpRel / minSecs));
+                            }
                         }
                     }
                 );

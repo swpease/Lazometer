@@ -25,7 +25,7 @@ Page {
 //                    tx.executeSql('DROP TABLE IF EXISTS Times');
 //                    tx.executeSql('CREATE TABLE IF NOT EXISTS Times'
 //                                  + '(day TEXT, inBed TEXT, toSleep TEXT, awake TEXT, gotUp TEXT)');
-                    tx.executeSql('DROP VIEW IF EXISTS TimesView');
+                    tx.executeSql('DROP VIEW IF EXISTS RelTimesView');
                 }
             );
         }
